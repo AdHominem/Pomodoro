@@ -33,6 +33,8 @@ public class MainActivity extends Activity {
     private static final String TAG = "MainActivity";
     private int pomodoros = 0;
     private enum Phase {POMODORO, SHORT_BREAK, LONG_BREAK};
+    private String captionString;
+    private String buttonString;
 
     class PomodoroTimer extends CountDownTimer {
 
@@ -79,8 +81,16 @@ public class MainActivity extends Activity {
         @Override
         public void onFinish() {
             timerIsRunning = false;
-            progressBar.setProgress(0);
 
+            switchPhase();
+            renderCaptions();
+
+            textView.setText(String.format("%02d : %02d", millisUntilFinished / ONE_MINUTE,
+                    millisUntilFinished % ONE_MINUTE / ONE_SECOND));
+        }
+
+        void switchPhase() {
+            progressBar.setProgress(0);
             if (phase == Phase.POMODORO) {
                 playSound();
                 pomodoros += 1;
@@ -90,27 +100,30 @@ public class MainActivity extends Activity {
                     phase = Phase.LONG_BREAK;
                     millisUntilFinished = LONG_BREAK_DURATION;
                     progressBar.setMax((int) (LONG_BREAK_DURATION));
-                    pomodoros = 0;
-                    caption.setText("Long break");
-                    button.setText("Start long break");
+                    captionString = "Long break";
+                    buttonString = "Start long break";
                 } else {
                     phase = Phase.SHORT_BREAK;
                     millisUntilFinished = SHORT_BREAK_DURATION;
                     progressBar.setMax((int) (SHORT_BREAK_DURATION));
-                    caption.setText("Short break");
-                    button.setText("Start short break");
+                    captionString = "Short break";
+                    buttonString = "Start short break";
                 }
-                ratingBar.setRating(pomodoros);
             } else {
                 phase = Phase.POMODORO;
                 millisUntilFinished = POMODORO_DURATION;
                 progressBar.setMax((int) (POMODORO_DURATION));
-                caption.setText("Pomodoro");
-                button.setText("Start");
+                captionString = "Pomodoro";
+                buttonString = "Start";
             }
-            textView.setText(String.format("%02d : %02d", millisUntilFinished / ONE_MINUTE,
-                    millisUntilFinished % ONE_MINUTE / ONE_SECOND));
         }
+    }
+
+
+    void renderCaptions() {
+        caption.setText(captionString);
+        button.setText(buttonString);
+        ratingBar.setRating(pomodoros);
     }
 
     @Override
@@ -124,13 +137,8 @@ public class MainActivity extends Activity {
         caption = (TextView) findViewById(R.id.caption);
         progressBar = (ProgressBar) findViewById(R.id.progressBar3);
         progressBar.setMax((int) POMODORO_DURATION);
-        System.out.println(progressBar.getMax());
     }
 
-    /**
-     * Starts or stops the timer
-     * @param v
-     */
     public void toggleTimer(View v) {
         muteSound();
 
