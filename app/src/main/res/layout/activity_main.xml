@@ -12,7 +12,7 @@
 
     <Button
         android:text="Start"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/button"
         android:onClick="toggleTimer"
@@ -21,7 +21,7 @@
         android:layout_marginBottom="136dp" />
 
     <TextView
-        android:text="25 Minutes left"
+        android:text="25 : 00"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/textView"
@@ -29,4 +29,42 @@
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="11dp"
         android:textSize="30sp" />
+
+    <Button
+        android:text="Reset"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/textView"
+        android:layout_alignStart="@+id/button"
+        android:layout_marginTop="55dp"
+        android:id="@+id/button2"
+        android:onClick="stopTimer" />
+
+    <TextView
+        android:text="Pomodoro"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/caption"
+        android:textSize="30sp"
+        android:layout_above="@+id/progressBar3"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="13dp" />
+
+    <RatingBar
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/ratingBar"
+        android:isIndicator="true"
+        android:numStars="4"
+        android:layout_above="@+id/caption"
+        android:layout_centerHorizontal="true" />
+
+    <ProgressBar
+        style="@android:style/Widget.DeviceDefault.ProgressBar.Horizontal"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/progressBar3"
+        android:layout_centerVertical="true"
+        android:layout_alignEnd="@+id/ratingBar" />
+
 </RelativeLayout>
