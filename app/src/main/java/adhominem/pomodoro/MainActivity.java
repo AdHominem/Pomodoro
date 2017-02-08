@@ -137,6 +137,7 @@ public class MainActivity extends Activity {
         caption = (TextView) findViewById(R.id.caption);
         progressBar = (ProgressBar) findViewById(R.id.progressBar3);
         progressBar.setMax((int) POMODORO_DURATION);
+        DBHelper dbHelper = new DBHelper(getApplicationContext());
     }
 
     public void toggleTimer(View v) {
