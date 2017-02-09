@@ -106,8 +106,6 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
             timerIsRunning = false;
 
             switchPhase();
-            addSession(session);
-            ++sessionCount;
             render();
 
             textView.setText(String.format("%02d : %02d", millisUntilFinished / ONE_MINUTE,
@@ -119,6 +117,8 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
             if (phase == Phase.POMODORO) {
                 playSound();
                 pomodoros += 1;
+                addSession(session);
+                ++sessionCount;
                 // determine next phase
                 // take a break
                 if (pomodoros == 4) {
@@ -156,7 +156,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        
+
         mediaPlayer = MediaPlayer.create(MainActivity.this, R.raw.micnight);
         button = (Button) findViewById(R.id.button);
         textView = (TextView) findViewById(R.id.textView);
