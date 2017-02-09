@@ -2,20 +2,28 @@ package adhominem.pomodoro;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.DatabaseUtils;
+import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.RatingBar;
+import android.widget.Spinner;
 import android.widget.TextView;
+import adhominem.pomodoro.DBHelperContract.DBEntry;
 
 import java.io.IOException;
+import java.io.ObjectInput;
 
 @SuppressLint("SetTextI18n")
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements AdapterView.OnItemSelectedListener {
 
     private static final long ONE_SECOND = 1000;
     private static final long ONE_MINUTE = 60000;
@@ -32,9 +40,24 @@ public class MainActivity extends Activity {
     private TextView textView;
     private static final String TAG = "MainActivity";
     private int pomodoros = 0;
+    private String session;
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        session = String.valueOf(parent.getItemAtPosition(position));
+        TextView pomodoroStatsText = (TextView) findViewById(R.id.pomodoroStatsText);
+        int count = getCount(session);
+        pomodoroStatsText.setText("Current pomodoros spent on\n" + session + ": " + count);
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+    }
+
     private enum Phase {POMODORO, SHORT_BREAK, LONG_BREAK};
     private String captionString;
     private String buttonString;
+    private DBHelper dbHelper;
 
     class PomodoroTimer extends CountDownTimer {
 
@@ -84,6 +107,7 @@ public class MainActivity extends Activity {
 
             switchPhase();
             renderCaptions();
+            addSession(session);
 
             textView.setText(String.format("%02d : %02d", millisUntilFinished / ONE_MINUTE,
                     millisUntilFinished % ONE_MINUTE / ONE_SECOND));
@@ -119,7 +143,6 @@ public class MainActivity extends Activity {
         }
     }
 
-
     void renderCaptions() {
         caption.setText(captionString);
         button.setText(buttonString);
@@ -137,10 +160,14 @@ public class MainActivity extends Activity {
         caption = (TextView) findViewById(R.id.caption);
         progressBar = (ProgressBar) findViewById(R.id.progressBar3);
         progressBar.setMax((int) POMODORO_DURATION);
-        DBHelper dbHelper = new DBHelper(getApplicationContext());
+        dbHelper = new DBHelper(getApplicationContext());
+        Spinner spinner = (Spinner) findViewById(R.id.spinner);
+        spinner.setOnItemSelectedListener(this);
     }
 
     public void toggleTimer(View v) {
+        queryAll();
+
         muteSound();
 
         if (timer == null) {
@@ -158,6 +185,7 @@ public class MainActivity extends Activity {
 
     // stops the current pomodoro completely, dismissing any progress
     public void stopTimer(View v) {
+
         muteSound();
         // stop old timer
         if (timer != null) {
@@ -189,5 +217,93 @@ public class MainActivity extends Activity {
             mediaPlayer.seekTo(0);
             mediaPlayer.start();
         }
+    }
+
+    public void insert(String session, int count) {
+        SQLiteDatabase database = dbHelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(DBEntry.COLUMN_NAME_SESSION, session);
+        values.put(DBEntry.COLUMN_NAME_COUNT, count);
+        database.insert(DBEntry.TABLE_NAME, null, values);
+    }
+
+    public void addSession(String session) {
+        SQLiteDatabase database = dbHelper.getReadableDatabase();
+
+        ContentValues values = new ContentValues();
+        int count = getCount(session);
+        values.put(DBEntry.COLUMN_NAME_COUNT, count + 1);
+
+        String selection = DBEntry.COLUMN_NAME_SESSION + " = ?";
+        String[] selectionArgs = { session };
+
+        database.update(
+                DBEntry.TABLE_NAME,
+                values,
+                selection,
+                selectionArgs
+        );
+    }
+
+    public void delete(String session) {
+        SQLiteDatabase database = dbHelper.getReadableDatabase();
+        String selection = DBEntry.COLUMN_NAME_SESSION + " LIKE ?";
+        String[] selectionArgs = { session };
+        database.delete(DBEntry.TABLE_NAME, selection, selectionArgs);
+
+    }
+
+    public void queryAll() {
+        SQLiteDatabase database = dbHelper.getReadableDatabase();
+
+        String[] projection = {
+                DBEntry._ID,
+                DBEntry.COLUMN_NAME_SESSION,
+                DBEntry.COLUMN_NAME_COUNT
+        };
+
+        String orderBy = DBEntry.COLUMN_NAME_SESSION + " DESC";
+
+        try (Cursor cursor = database.query(
+                DBEntry.TABLE_NAME,
+                projection,
+                null,
+                null,
+                null,
+                null,
+                orderBy
+        )) {
+            System.out.println(DatabaseUtils.dumpCursorToString(cursor));
+        };
+    }
+
+    public int getCount(String session) {
+        SQLiteDatabase database = dbHelper.getReadableDatabase();
+
+        String[] projection = {
+                DBEntry.COLUMN_NAME_COUNT
+        };
+
+        String selection = DBEntry.COLUMN_NAME_SESSION + " = ?";
+        String[] selectionArgs = { session };
+
+        try (Cursor cursor = database.query(
+                DBEntry.TABLE_NAME,
+                projection,
+                selection,
+                selectionArgs,
+                null,
+                null,
+                null
+        )) {
+            cursor.moveToFirst();
+            return cursor.getInt(cursor.getColumnIndex(DBEntry.COLUMN_NAME_COUNT));
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        dbHelper.close();
+        super.onDestroy();
     }
 }
