@@ -20,7 +20,6 @@ import android.widget.TextView;
 import adhominem.pomodoro.DBHelperContract.DBEntry;
 
 import java.io.IOException;
-import java.io.ObjectInput;
 
 @SuppressLint("SetTextI18n")
 public class MainActivity extends Activity implements AdapterView.OnItemSelectedListener {
@@ -39,15 +38,16 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     private RatingBar ratingBar;
     private TextView textView;
     private static final String TAG = "MainActivity";
-    private int pomodoros = 0;
+    private int pomodoros;
     private String session;
+    private int sessionCount;
+    private TextView pomodoroStatsText;
 
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         session = String.valueOf(parent.getItemAtPosition(position));
-        TextView pomodoroStatsText = (TextView) findViewById(R.id.pomodoroStatsText);
-        int count = getCount(session);
-        pomodoroStatsText.setText("Current pomodoros spent on\n" + session + ": " + count);
+        sessionCount = getCount(session);
+        render();
     }
 
     @Override
@@ -106,8 +106,9 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
             timerIsRunning = false;
 
             switchPhase();
-            renderCaptions();
             addSession(session);
+            ++sessionCount;
+            render();
 
             textView.setText(String.format("%02d : %02d", millisUntilFinished / ONE_MINUTE,
                     millisUntilFinished % ONE_MINUTE / ONE_SECOND));
@@ -143,16 +144,19 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         }
     }
 
-    void renderCaptions() {
+    void render() {
         caption.setText(captionString);
         button.setText(buttonString);
         ratingBar.setRating(pomodoros);
+        pomodoroStatsText.setText("Current pomodoros spent on\n" + session + ": " + sessionCount);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
+        
         mediaPlayer = MediaPlayer.create(MainActivity.this, R.raw.micnight);
         button = (Button) findViewById(R.id.button);
         textView = (TextView) findViewById(R.id.textView);
@@ -160,9 +164,12 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         caption = (TextView) findViewById(R.id.caption);
         progressBar = (ProgressBar) findViewById(R.id.progressBar3);
         progressBar.setMax((int) POMODORO_DURATION);
+        pomodoroStatsText = (TextView) findViewById(R.id.pomodoroStatsText);
         dbHelper = new DBHelper(getApplicationContext());
         Spinner spinner = (Spinner) findViewById(R.id.spinner);
         spinner.setOnItemSelectedListener(this);
+        pomodoros = 0;
+        buttonString = "Start";
     }
 
     public void toggleTimer(View v) {
