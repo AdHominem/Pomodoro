@@ -7,6 +7,9 @@ import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaPlayer;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
@@ -30,7 +33,6 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     private static final long SHORT_BREAK_DURATION = ONE_MINUTE * 5;
     private static final long LONG_BREAK_DURATION = ONE_MINUTE * 15;
 
-    private MediaPlayer mediaPlayer;
     private PomodoroTimer timer;
     private Button button;
     private ProgressBar progressBar;
@@ -42,6 +44,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     private String session;
     private int sessionCount;
     private TextView pomodoroStatsText;
+    private Ringtone alarm;
 
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -115,7 +118,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         void switchPhase() {
             progressBar.setProgress(0);
             if (phase == Phase.POMODORO) {
-                playSound();
+                alarm.play();
                 pomodoros += 1;
                 addSession(session);
                 ++sessionCount;
@@ -157,7 +160,6 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
 
         setContentView(R.layout.activity_main);
 
-        mediaPlayer = MediaPlayer.create(MainActivity.this, R.raw.micnight);
         button = (Button) findViewById(R.id.button);
         textView = (TextView) findViewById(R.id.textView);
         ratingBar = (RatingBar) findViewById(R.id.ratingBar);
@@ -170,12 +172,12 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         spinner.setOnItemSelectedListener(this);
         pomodoros = 0;
         buttonString = "Start";
+        Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        alarm = RingtoneManager.getRingtone(getApplicationContext(), notification);
     }
 
     public void toggleTimer(View v) {
-        queryAll();
-
-        muteSound();
+        alarm.stop();
 
         if (timer == null) {
             timer = new PomodoroTimer(POMODORO_DURATION, Phase.POMODORO);
@@ -193,7 +195,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     // stops the current pomodoro completely, dismissing any progress
     public void stopTimer(View v) {
 
-        muteSound();
+        alarm.stop();
         // stop old timer
         if (timer != null) {
             timer.cancel();
@@ -208,22 +210,6 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         button.setText("Start");
         caption.setText("Pomodoro");
         textView.setText("25 : 00");
-    }
-
-    public void muteSound() {
-        mediaPlayer.stop();
-    }
-
-    public void playSound() {
-        if (!mediaPlayer.isPlaying()){
-            try {
-                mediaPlayer.prepare();
-            } catch (IllegalStateException | IOException exception) {
-                Log.e(TAG, exception.getMessage());
-            }
-            mediaPlayer.seekTo(0);
-            mediaPlayer.start();
-        }
     }
 
     public void insert(String session, int count) {
