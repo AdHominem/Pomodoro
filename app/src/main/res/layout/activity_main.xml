@@ -14,7 +14,7 @@
         android:text="Start"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/button"
+        android:id="@+id/startButton"
         android:onClick="toggleTimer"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
@@ -24,8 +24,8 @@
         android:text="25 : 00"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/textView"
-        android:layout_above="@+id/button"
+        android:id="@+id/timeDisplay"
+        android:layout_above="@+id/startButton"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="11dp"
         android:textSize="30sp" />
@@ -34,19 +34,19 @@
         android:text="Reset"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/textView"
-        android:layout_alignStart="@+id/button"
+        android:layout_below="@+id/timeDisplay"
+        android:layout_alignStart="@+id/startButton"
         android:layout_marginTop="55dp"
-        android:id="@+id/button2"
-        android:onClick="stopTimer" />
+        android:id="@+id/resetButton"
+        android:onClick="reset" />
 
     <TextView
         android:text="Pomodoro"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/caption"
+        android:id="@+id/phaseDisplay"
         android:textSize="30sp"
-        android:layout_above="@+id/progressBar3"
+        android:layout_above="@+id/progressBar"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="13dp" />
 
@@ -56,14 +56,14 @@
         android:id="@+id/ratingBar"
         android:isIndicator="true"
         android:numStars="4"
-        android:layout_above="@+id/caption"
+        android:layout_above="@+id/phaseDisplay"
         android:layout_centerHorizontal="true" />
 
     <ProgressBar
         style="@android:style/Widget.DeviceDefault.ProgressBar.Horizontal"
         android:layout_width="200dp"
         android:layout_height="wrap_content"
-        android:id="@+id/progressBar3"
+        android:id="@+id/progressBar"
         android:layout_centerVertical="true"
         android:layout_alignEnd="@+id/ratingBar" />
 
