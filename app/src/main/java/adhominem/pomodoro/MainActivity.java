@@ -1,12 +1,14 @@
 package adhominem.pomodoro;
 
 import android.annotation.SuppressLint;
+import android.app.ActionBar;
 import android.app.Activity;
+import android.app.NotificationManager;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
-import android.media.MediaPlayer;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -20,9 +22,8 @@ import android.widget.ProgressBar;
 import android.widget.RatingBar;
 import android.widget.Spinner;
 import android.widget.TextView;
-import adhominem.pomodoro.DBHelperContract.DBEntry;
 
-import java.io.IOException;
+import adhominem.pomodoro.DBHelperContract.DBEntry;
 
 @SuppressLint("SetTextI18n")
 public class MainActivity extends Activity implements AdapterView.OnItemSelectedListener {
@@ -33,18 +34,26 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     private static final long SHORT_BREAK_DURATION = ONE_MINUTE * 5;
     private static final long LONG_BREAK_DURATION = ONE_MINUTE * 15;
 
+    // App state
     private PomodoroTimer timer;
-    private Button button;
+
+    private Button startButton;
     private ProgressBar progressBar;
-    private TextView caption;
+    private TextView phaseDisplay;
     private RatingBar ratingBar;
-    private TextView textView;
-    private static final String TAG = "MainActivity";
+    private TextView timeDisplay;
+    private TextView pomodoroStatsText;
+
     private int pomodoros;
     private String session;
     private int sessionCount;
-    private TextView pomodoroStatsText;
     private Ringtone alarm;
+    private DBHelper dbHelper;
+    private boolean timerIsRunning;
+
+    private String phaseDisplayString;
+    private String startButtonString;
+    private String timeDisplayString;
 
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -57,14 +66,10 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     public void onNothingSelected(AdapterView<?> parent) {
     }
 
-    private enum Phase {POMODORO, SHORT_BREAK, LONG_BREAK};
-    private String captionString;
-    private String buttonString;
-    private DBHelper dbHelper;
+    private enum Phase {POMODORO, SHORT_BREAK, LONG_BREAK }
 
     class PomodoroTimer extends CountDownTimer {
 
-        private boolean timerIsRunning;
         private long millisUntilFinished;
         private Phase phase;
 
@@ -79,13 +84,8 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
             return millisUntilFinished;
         }
 
-        boolean isTimerRunning() {
-            return timerIsRunning;
-        }
-
         void toggleTimerIsRunning() {
             timerIsRunning = !timerIsRunning;
-            button.setText(timerIsRunning ? "Pause" : "Start");
         }
 
         Phase getPhase() {
@@ -98,7 +98,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
 
             // This stores the remaining time. If timer is stopped, new total will be used
             this.millisUntilFinished = millisUntilFinished;
-            textView.setText(String.format("%02d : %02d", millisUntilFinished / ONE_MINUTE,
+            timeDisplay.setText(String.format("%02d : %02d", millisUntilFinished / ONE_MINUTE,
                     millisUntilFinished % ONE_MINUTE / ONE_SECOND));
             progressBar.incrementProgressBy((int) ONE_SECOND);
         }
@@ -111,11 +111,12 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
             switchPhase();
             render();
 
-            textView.setText(String.format("%02d : %02d", millisUntilFinished / ONE_MINUTE,
+            timeDisplay.setText(String.format("%02d : %02d", millisUntilFinished / ONE_MINUTE,
                     millisUntilFinished % ONE_MINUTE / ONE_SECOND));
         }
 
         void switchPhase() {
+            toggleDoNotDisturb();
             progressBar.setProgress(0);
             if (phase == Phase.POMODORO) {
                 alarm.play();
@@ -128,30 +129,70 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
                     phase = Phase.LONG_BREAK;
                     millisUntilFinished = LONG_BREAK_DURATION;
                     progressBar.setMax((int) (LONG_BREAK_DURATION));
-                    captionString = "Long break";
-                    buttonString = "Start long break";
+                    phaseDisplayString = "Long break";
+                    startButtonString = "Start long break";
                 } else {
                     phase = Phase.SHORT_BREAK;
                     millisUntilFinished = SHORT_BREAK_DURATION;
                     progressBar.setMax((int) (SHORT_BREAK_DURATION));
-                    captionString = "Short break";
-                    buttonString = "Start short break";
+                    phaseDisplayString = "Short break";
+                    startButtonString = "Start short break";
                 }
             } else {
                 phase = Phase.POMODORO;
                 millisUntilFinished = POMODORO_DURATION;
                 progressBar.setMax((int) (POMODORO_DURATION));
-                captionString = "Pomodoro";
-                buttonString = "Start";
+                phaseDisplayString = "Pomodoro";
+                startButtonString = "Start";
             }
         }
     }
 
+    void toggleDoNotDisturb() {
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        View decorView = getWindow().getDecorView();
+
+        int interruptionFilter = notificationManager.getCurrentInterruptionFilter(), visibility;
+        if (interruptionFilter == NotificationManager.INTERRUPTION_FILTER_NONE) {
+            interruptionFilter = NotificationManager.INTERRUPTION_FILTER_ALL;
+            visibility = View.SYSTEM_UI_FLAG_VISIBLE;
+        } else {
+            interruptionFilter = NotificationManager.INTERRUPTION_FILTER_NONE;
+            visibility = View.SYSTEM_UI_FLAG_LOW_PROFILE;
+        }
+
+        decorView.setSystemUiVisibility(visibility);
+        notificationManager.setInterruptionFilter(interruptionFilter);
+    }
+
+    void doNotDisturb(boolean value) {
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        View decorView = getWindow().getDecorView();
+
+        int interruptionFilter, visibility;
+        if (value) {
+            interruptionFilter = NotificationManager.INTERRUPTION_FILTER_NONE;
+            visibility =  View.SYSTEM_UI_FLAG_LOW_PROFILE;
+        } else {
+            interruptionFilter = NotificationManager.INTERRUPTION_FILTER_ALL;
+            visibility =  View.SYSTEM_UI_FLAG_VISIBLE;
+        }
+
+        decorView.setSystemUiVisibility(visibility);
+        notificationManager.setInterruptionFilter(interruptionFilter);
+    }
+
     void render() {
-        caption.setText(captionString);
-        button.setText(buttonString);
+        phaseDisplay.setText(phaseDisplayString);
+        startButton.setText(startButtonString);
         ratingBar.setRating(pomodoros);
         pomodoroStatsText.setText("Current pomodoros spent on\n" + session + ": " + sessionCount);
+        startButton.setText(timerIsRunning ? "Pause" : "Start");
+        timeDisplay.setText(timeDisplayString);
     }
 
     @Override
@@ -160,42 +201,61 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
 
         setContentView(R.layout.activity_main);
 
-        button = (Button) findViewById(R.id.button);
-        textView = (TextView) findViewById(R.id.textView);
+        startButton = (Button) findViewById(R.id.startButton);
+        timeDisplay = (TextView) findViewById(R.id.timeDisplay);
         ratingBar = (RatingBar) findViewById(R.id.ratingBar);
-        caption = (TextView) findViewById(R.id.caption);
-        progressBar = (ProgressBar) findViewById(R.id.progressBar3);
+        phaseDisplay = (TextView) findViewById(R.id.phaseDisplay);
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
         progressBar.setMax((int) POMODORO_DURATION);
         pomodoroStatsText = (TextView) findViewById(R.id.pomodoroStatsText);
         dbHelper = new DBHelper(getApplicationContext());
         Spinner spinner = (Spinner) findViewById(R.id.spinner);
         spinner.setOnItemSelectedListener(this);
         pomodoros = 0;
-        buttonString = "Start";
+        phaseDisplayString = "Pomodoro";
+        startButtonString = "Start";
+        timeDisplayString = "25 : 00";
         Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
         alarm = RingtoneManager.getRingtone(getApplicationContext(), notification);
     }
 
+    @SuppressLint("DefaultLocale")
     public void toggleTimer(View v) {
         alarm.stop();
+        toggleDoNotDisturb();
 
         if (timer == null) {
             timer = new PomodoroTimer(POMODORO_DURATION, Phase.POMODORO);
             timer.start();
-        } else if (timer.isTimerRunning()) {
+            timerIsRunning = true;
+        } else if (timerIsRunning) {
             timer.cancel();
+            timeDisplayString = String.format("%02d : %02d", timer.millisUntilFinished / ONE_MINUTE,
+                    timer.millisUntilFinished % ONE_MINUTE / ONE_SECOND);
+            timerIsRunning = false;
         } else {
             // get remaining time
             timer = new PomodoroTimer(timer.getMillisUntilFinished(), timer.getPhase());
+            timeDisplayString = String.format("%02d : %02d", timer.millisUntilFinished / ONE_MINUTE,
+                    timer.millisUntilFinished % ONE_MINUTE / ONE_SECOND);
+            Log.d("Main", "Timer resuming with " + timeDisplayString + " in phase " + timer.getPhase());
             timer.start();
+            timerIsRunning = true;
         }
-        timer.toggleTimerIsRunning();
+
+        Log.d("Main", "Toggling timer, running: " + timerIsRunning);
+
+        render();
     }
 
     // stops the current pomodoro completely, dismissing any progress
-    public void stopTimer(View v) {
+    public void reset(View v) {
+
+        Log.d("Main", "Timer reset");
 
         alarm.stop();
+        doNotDisturb(false);
+
         // stop old timer
         if (timer != null) {
             timer.cancel();
@@ -207,9 +267,11 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         ratingBar.setRating(0);
         progressBar.setProgress(0);
         progressBar.setMax((int) POMODORO_DURATION);
-        button.setText("Start");
-        caption.setText("Pomodoro");
-        textView.setText("25 : 00");
+        startButtonString = "Start";
+        phaseDisplayString = "Pomodoro";
+        timeDisplayString = "25 : 00";
+
+        render();
     }
 
     public void insert(String session, int count) {
@@ -267,7 +329,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
                 orderBy
         )) {
             System.out.println(DatabaseUtils.dumpCursorToString(cursor));
-        };
+        }
     }
 
     public int getCount(String session) {
