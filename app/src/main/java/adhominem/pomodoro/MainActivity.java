@@ -50,6 +50,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     private Ringtone alarm;
     private DBHelper dbHelper;
     private boolean timerIsRunning;
+    private enum Phase {POMODORO, SHORT_BREAK, LONG_BREAK }
 
     private String phaseDisplayString;
     private String startButtonString;
@@ -65,8 +66,6 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     @Override
     public void onNothingSelected(AdapterView<?> parent) {
     }
-
-    private enum Phase {POMODORO, SHORT_BREAK, LONG_BREAK }
 
     class PomodoroTimer extends CountDownTimer {
 
@@ -118,8 +117,8 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         void switchPhase() {
             toggleDoNotDisturb();
             progressBar.setProgress(0);
+            alarm.play();
             if (phase == Phase.POMODORO) {
-                alarm.play();
                 pomodoros += 1;
                 addSession(session);
                 ++sessionCount;
