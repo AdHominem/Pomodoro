@@ -9,6 +9,7 @@ final class DBHelperContract {
     static class DBEntry implements BaseColumns {
         static final String TABLE_NAME = "pomodoro";
         static final String COLUMN_NAME_SESSION = "session";
+        static final String COLUMN_NAME_TIME= "time";
         static final String COLUMN_NAME_COUNT = "count";
     }
 }

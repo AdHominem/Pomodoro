@@ -11,7 +11,8 @@ class DBHelper extends SQLiteOpenHelper {
             "CREATE TABLE " + DBEntry.TABLE_NAME + " (" +
                     DBEntry._ID + " INTEGER PRIMARY KEY," +
                     DBEntry.COLUMN_NAME_SESSION + " TEXT," +
-                    DBEntry.COLUMN_NAME_COUNT + " TEXT)";
+                    DBEntry.COLUMN_NAME_TIME + " INTEGER," +
+                    DBEntry.COLUMN_NAME_COUNT + " INTEGER)";
 
     private static final String SQL_DELETE_ENTRIES =
             "DROP TABLE IF EXISTS " + DBEntry.TABLE_NAME;

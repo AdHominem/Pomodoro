@@ -11,6 +11,16 @@
     tools:context="adhominem.pomodoro.MainActivity">
 
     <Button
+        android:id="@+id/button2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/startButton"
+        android:layout_below="@+id/timeDisplay"
+        android:layout_marginTop="55dp"
+        android:onClick="reset"
+        android:text="Reset" />
+
+    <Button
         android:text="Start"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -31,14 +41,14 @@
         android:textSize="30sp" />
 
     <Button
-        android:text="Reset"
+        android:id="@+id/muteButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/timeDisplay"
-        android:layout_alignStart="@+id/startButton"
-        android:layout_marginTop="55dp"
-        android:id="@+id/resetButton"
-        android:onClick="reset" />
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/button2"
+        android:layout_marginTop="12dp"
+        android:onClick="mute"
+        android:text="Mute" />
 
     <TextView
         android:text="Pomodoro"
@@ -70,12 +80,12 @@
     <Spinner
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:entries="@array/session"
         android:textAlignment="center"
         android:layout_above="@+id/ratingBar"
         android:layout_alignParentStart="true"
         android:layout_marginBottom="38dp"
-        android:id="@+id/spinner" />
+        android:id="@+id/spinner"
+        android:layout_toStartOf="@+id/deleteSessionButton" />
 
     <TextView
         android:text="Current pomodoros spent on"
@@ -86,5 +96,25 @@
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="16dp"
         android:id="@+id/pomodoroStatsText" />
+
+    <Button
+        android:id="@+id/addSessionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="promptForAddSession"
+        android:text="+"
+        android:layout_alignBaseline="@+id/deleteSessionButton"
+        android:layout_alignBottom="@+id/deleteSessionButton"
+        android:layout_toEndOf="@+id/ratingBar" />
+
+    <Button
+        android:id="@+id/deleteSessionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/spinner"
+        android:layout_alignBottom="@+id/spinner"
+        android:layout_toStartOf="@+id/addSessionButton"
+        android:onClick="promptForDeleteSession"
+        android:text="-" />
 
 </RelativeLayout>

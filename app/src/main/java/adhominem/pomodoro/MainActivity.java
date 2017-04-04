@@ -16,6 +16,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Vibrator;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
@@ -38,9 +39,9 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
 
     private static final long ONE_SECOND = 1000;
     private static final long ONE_MINUTE = 60000;
-    private static final long POMODORO_DURATION = ONE_MINUTE * 25;
-    private static final long SHORT_BREAK_DURATION = ONE_MINUTE * 5;
-    private static final long LONG_BREAK_DURATION = ONE_MINUTE * 15;
+    private static final long POMODORO_DURATION = ONE_SECOND;//ONE_MINUTE * 25;
+    private static final long SHORT_BREAK_DURATION =  ONE_SECOND;//ONE_MINUTE * 5;
+    private static final long LONG_BREAK_DURATION =  ONE_SECOND;//ONE_MINUTE * 15;
 
     // App state
     private PomodoroTimer timer;
@@ -137,7 +138,9 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         void switchPhase() {
             toggleDoNotDisturb();
             progressBar.setProgress(0);
-            alarm.play();
+            //alarm.play();
+            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            v.vibrate(1000);
             if (phase == Phase.POMODORO) {
                 pomodoros += 1;
                 sessionCountIncrement(session);
@@ -145,25 +148,28 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
                 // determine next phase
                 // take a break
                 if (pomodoros == 4) {
-                    phase = Phase.LONG_BREAK;
-                    millisUntilFinished = LONG_BREAK_DURATION;
-                    progressBar.setMax((int) (LONG_BREAK_DURATION));
-                    phaseDisplayString = "Long break";
-                    startButtonString = "Start long break";
+                    setPhaseState(Phase.LONG_BREAK, LONG_BREAK_DURATION, (int) LONG_BREAK_DURATION,
+                            "Long break", "Start long break");
                 } else {
-                    phase = Phase.SHORT_BREAK;
-                    millisUntilFinished = SHORT_BREAK_DURATION;
-                    progressBar.setMax((int) (SHORT_BREAK_DURATION));
-                    phaseDisplayString = "Short break";
-                    startButtonString = "Start short break";
+                    setPhaseState(Phase.SHORT_BREAK, SHORT_BREAK_DURATION,
+                            (int) (SHORT_BREAK_DURATION), "Short break", "Start short break");
                 }
             } else {
-                phase = Phase.POMODORO;
-                millisUntilFinished = POMODORO_DURATION;
-                progressBar.setMax((int) (POMODORO_DURATION));
-                phaseDisplayString = "Pomodoro";
-                startButtonString = "Start";
+                setPhaseState(Phase.POMODORO, POMODORO_DURATION, (int) POMODORO_DURATION,
+                        "Pomodoro", "Start");
+                if (pomodoros == 4) {
+                    pomodoros = 0;
+                }
             }
+        }
+
+        void setPhaseState(Phase phase, long millisUntilFinished, int progressBarMax,
+                           String newPhaseDisplayString, String newStartButtonString) {
+            this.phase = phase;
+            this.millisUntilFinished = millisUntilFinished;
+            progressBar.setMax(progressBarMax);
+            phaseDisplayString = newPhaseDisplayString;
+            startButtonString = newStartButtonString;
         }
     }
 
