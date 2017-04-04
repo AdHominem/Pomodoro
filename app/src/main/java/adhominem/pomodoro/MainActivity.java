@@ -1,27 +1,35 @@
 package adhominem.pomodoro;
 
 import android.annotation.SuppressLint;
-import android.app.ActionBar;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
+import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.text.InputType;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.RatingBar;
 import android.widget.Spinner;
 import android.widget.TextView;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import adhominem.pomodoro.DBHelperContract.DBEntry;
 
@@ -59,12 +67,24 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         session = String.valueOf(parent.getItemAtPosition(position));
-        sessionCount = getCount(session);
+        sessionCount = sessionGetCount(session);
         render();
     }
 
     @Override
     public void onNothingSelected(AdapterView<?> parent) {
+    }
+
+    public void fillSpinner() {
+        // you need to have a list of data that you want the spinner to display
+        List<String> spinnerArray = sessionGetAll();
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this, android.R.layout.simple_spinner_item, spinnerArray);
+
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        Spinner sItems = (Spinner) findViewById(R.id.spinner);
+        sItems.setAdapter(adapter);
     }
 
     class PomodoroTimer extends CountDownTimer {
@@ -120,7 +140,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
             alarm.play();
             if (phase == Phase.POMODORO) {
                 pomodoros += 1;
-                addSession(session);
+                sessionCountIncrement(session);
                 ++sessionCount;
                 // determine next phase
                 // take a break
@@ -185,6 +205,12 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         notificationManager.setInterruptionFilter(interruptionFilter);
     }
 
+    public void mute(View view) {
+        AudioManager audioManager=(AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, AudioManager.FLAG_SHOW_UI,
+                AudioManager.FLAG_PLAY_SOUND);
+    }
+
     void render() {
         phaseDisplay.setText(phaseDisplayString);
         startButton.setText(startButtonString);
@@ -210,6 +236,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         dbHelper = new DBHelper(getApplicationContext());
         Spinner spinner = (Spinner) findViewById(R.id.spinner);
         spinner.setOnItemSelectedListener(this);
+        fillSpinner();
         pomodoros = 0;
         phaseDisplayString = "Pomodoro";
         startButtonString = "Start";
@@ -273,7 +300,8 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         render();
     }
 
-    public void insert(String session, int count) {
+    // Adds a new session to the database with a given count
+    public void sessionAdd(String session, int count) {
         SQLiteDatabase database = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(DBEntry.COLUMN_NAME_SESSION, session);
@@ -281,11 +309,12 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         database.insert(DBEntry.TABLE_NAME, null, values);
     }
 
-    public void addSession(String session) {
+    // Increments a given session's count by one
+    public void sessionCountIncrement(String session) {
         SQLiteDatabase database = dbHelper.getReadableDatabase();
 
         ContentValues values = new ContentValues();
-        int count = getCount(session);
+        int count = sessionGetCount(session);
         values.put(DBEntry.COLUMN_NAME_COUNT, count + 1);
 
         String selection = DBEntry.COLUMN_NAME_SESSION + " = ?";
@@ -299,7 +328,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         );
     }
 
-    public void delete(String session) {
+    public void sessionDelete(String session) {
         SQLiteDatabase database = dbHelper.getReadableDatabase();
         String selection = DBEntry.COLUMN_NAME_SESSION + " LIKE ?";
         String[] selectionArgs = { session };
@@ -307,7 +336,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
 
     }
 
-    public void queryAll() {
+    public void sessionQueryAll() {
         SQLiteDatabase database = dbHelper.getReadableDatabase();
 
         String[] projection = {
@@ -331,7 +360,38 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         }
     }
 
-    public int getCount(String session) {
+    // Returns an array containing all session names
+    public List<String> sessionGetAll() {
+        SQLiteDatabase database = dbHelper.getReadableDatabase();
+        List<String> result;
+
+        String[] projection = {
+                DBEntry.COLUMN_NAME_SESSION
+        };
+
+        String orderBy = DBEntry.COLUMN_NAME_SESSION + " DESC";
+
+        try (Cursor cursor = database.query(
+                DBEntry.TABLE_NAME,
+                projection,
+                null,
+                null,
+                null,
+                null,
+                orderBy
+        )) {
+            System.out.println(DatabaseUtils.dumpCursorToString(cursor));
+            int sessionIndex = cursor.getColumnIndex(DBEntry.COLUMN_NAME_SESSION);
+            result = new ArrayList<>();
+            while (cursor.moveToNext()) {
+                result.add(cursor.getString(sessionIndex));
+            }
+        }
+
+        return result;
+    }
+
+    public int sessionGetCount(String session) {
         SQLiteDatabase database = dbHelper.getReadableDatabase();
 
         String[] projection = {
@@ -359,5 +419,55 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     protected void onDestroy() {
         dbHelper.close();
         super.onDestroy();
+    }
+
+    public void promptForAddSession(View view) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Add a new session");
+
+        // Set up the input
+        final EditText input = new EditText(this);
+
+        // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+        input.setInputType(InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        builder.setView(input);
+
+        // Set up the buttons
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                final String inputText = input.getText().toString();
+                sessionAdd(inputText, 0);
+                fillSpinner();
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+    }
+
+    public void promptForDeleteSession(View view) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("You really want to delete session " + session + "?")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        sessionDelete(session);
+                        fillSpinner();
+                        System.out.println("Session " + session + " has been deleted!");
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                    }
+                });
+        // Create the AlertDialog object and show it
+        builder.create().show();
+
     }
 }
